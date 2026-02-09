@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CuacaPintar Pro - Direct Dashboard</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-sunny: linear-gradient(to bottom right, #3b82f6, #60a5fa);
+            --bg-night: linear-gradient(to bottom right, #0f172a, #1e293b);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #0f172a;
+            color: white;
+            min-height: 100vh;
+            transition: background 1s ease-in-out;
+            overscroll-behavior-y: none;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .glass-light {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .hide-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scroll {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-8px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .uv-row:nth-child(even) {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .suggestion-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body id="appBody" class="flex justify-center p-4 md:p-6">
+
+    <div class="w-full max-w-md md:max-w-lg space-y-6 relative pb-10">
+
+        <!-- Header -->
+        <header class="flex items-center justify-between z-30 relative">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight">CuacaPintar <span
+                        class="text-blue-300 font-light">Pro</span></h1>
+                <p class="text-[10px] text-white/60 font-medium tracking-widest uppercase">UV & Humidity Monitor</p>
+            </div>
+            <!-- Tombol Validasi BMKG dengan Ikon Lucide -->
+            <a href="https://www.bmkg.go.id/cuaca/prakiraan-cuaca.bmkg" target="_blank"
+                class="text-[10px] bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-full border border-white/20 transition-all flex items-center gap-1.5">
+                <i data-lucide="check-circle" class="w-3 h-3 text-green-400"></i>
+                Validasi BMKG
+            </a>
+        </header>
+
+        <!-- Search Bar -->
+        <div class="relative z-40">
+            <div class="relative group">
+                <input type="text" id="searchInput" autocomplete="off" placeholder="Cari lokasi lain..."
+                    class="w-full glass-panel rounded-2xl py-4 px-5 pr-14 text-white placeholder-white/40 focus:outline-none focus:bg-white/10 focus:ring-2 focus:ring-blue-400/50 transition-all shadow-xl">
+                <button onclick="manualSearch()"
+                    class="absolute right-2 top-2 glass-light p-2.5 rounded-xl hover:bg-white/20 transition-all">
+                    <i data-lucide="search" class="w-4 h-4 text-white"></i>
+                </button>
+            </div>
+
+            <!-- Suggestion Dropdown -->
+            <div id="suggestionBox"
+                class="hidden absolute w-full mt-2 glass-panel rounded-2xl overflow-hidden shadow-2xl border border-white/20 z-50">
+                <div id="suggestionList" class="max-h-60 overflow-y-auto divide-y divide-white/5"></div>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div id="statusBox"
+            class="hidden glass-light border-l-4 border-blue-400 p-4 rounded-r-xl text-sm flex items-center gap-3 animate-pulse">
+            <div class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+            <span id="statusText">Memuat...</span>
+        </div>
+
+        <!-- DASHBOARD (Langsung Tampil) -->
+        <main id="weatherDashboard" class="hidden space-y-5">
+
+            <!-- Main Display -->
+            <section class="glass-panel rounded-[2.5rem] p-8 text-center relative overflow-hidden">
+                <div class="relative z-10">
+                    <h2 id="areaName" class="text-3xl font-bold tracking-tight">--</h2>
+                    <p id="areaSub" class="text-xs text-white/60 font-medium mt-1 uppercase">--</p>
+
+                    <div id="weatherIconDisplay" class="my-4 flex justify-center animate-float"></div>
+
+                    <div class="flex items-start justify-center">
+                        <span id="tempValue" class="text-8xl font-black tracking-tighter">--</span>
+                        <span class="text-4xl mt-3 font-light text-blue-300">°</span>
+                    </div>
+                    <p id="weatherDesc" class="text-lg font-semibold capitalize">--</p>
+                </div>
+            </section>
+
+            <!-- Combined Grid -->
+            <div class="grid grid-cols-2 gap-3">
+
+                <!-- Kiri: Tabel UV & Lembap -->
+                <div class="glass-panel p-3 rounded-3xl h-44 flex flex-col relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-2 pb-2 border-b border-white/10">
+                        <span class="text-[9px] font-black uppercase tracking-widest text-blue-300">Prediksi Per
+                            Jam</span>
+                        <i data-lucide="list" class="w-3 h-3 text-white/40"></i>
+                    </div>
+
+                    <div class="overflow-y-auto hide-scroll flex-1">
+                        <table class="w-full text-[10px] text-left">
+                            <thead class="text-white/40 border-b border-white/5">
+                                <tr>
+                                    <th class="pb-1 font-medium">Jam</th>
+                                    <th class="pb-1 text-center font-medium">UV</th>
+                                    <th class="pb-1 text-right font-medium">Lembap</th>
+                                </tr>
+                            </thead>
+                            <tbody id="combinedTableBody" class="text-white/90"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Kanan: Statistik -->
+                <div class="grid grid-rows-2 gap-3">
+                    <!-- UV BOX -->
+                    <div class="glass-panel rounded-3xl p-4 flex flex-col justify-center">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i data-lucide="sun" class="w-4 h-4 text-orange-400"></i>
+                            <p class="text-[10px] text-white/40 uppercase font-black tracking-wider">UV Index</p>
+                        </div>
+                        <p id="currentUvValue" class="text-2xl font-bold">--</p>
+                    </div>
+                    <!-- HUMIDITY BOX -->
+                    <div class="glass-panel rounded-3xl p-4 flex flex-col justify-center">
+                        <div class="flex items-center gap-2 mb-1">
+                            <i data-lucide="droplets" class="w-4 h-4 text-blue-400"></i>
+                            <p class="text-[10px] text-white/40 uppercase font-black tracking-wider">Lembap</p>
+                        </div>
+                        <div class="flex items-baseline gap-1">
+                            <p id="currentHumValue" class="text-2xl font-bold">--</p>
+                            <span class="text-xs font-bold text-blue-300">%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hourly Horizontal -->
+            <section class="glass-panel rounded-[2rem] p-5">
+                <h3 class="text-[10px] font-black uppercase tracking-widest text-white/40 mb-4">Suhu Kedepan</h3>
+                <div id="hourlyScroll" class="flex gap-4 overflow-x-auto hide-scroll"></div>
+            </section>
+
+            <!-- Daily -->
+            <section class="glass-panel rounded-[2rem] p-5">
+                <h3 class="text-[10px] font-black uppercase tracking-widest text-white/40 mb-4">Ramalan Mingguan</h3>
+                <div id="dailyList" class="space-y-2"></div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        // --- INIT: Auto Load Jakarta ---
+        window.addEventListener('DOMContentLoaded', () => {
+            // Langsung cari Jakarta saat aplikasi dibuka
+            manualSearch("Jakarta");
+        });
+
+        // --- SUGGESTION LOGIC ---
+        let debounceTimer;
+        const searchInput = document.getElementById('searchInput');
+        const suggestionBox = document.getElementById('suggestionBox');
+        const suggestionList = document.getElementById('suggestionList');
+
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            const query = e.target.value;
+
+            if (query.length < 3) {
+                suggestionBox.classList.add('hidden');
+                return;
+            }
+
+            debounceTimer = setTimeout(() => fetchSuggestions(query), 400);
+        });
+
+        async function fetchSuggestions(query) {
+            try {
+                const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=id&format=json`);
+                const data = await res.json();
+
+                if (data.results && data.results.length > 0) {
+                    renderSuggestions(data.results);
+                } else {
+                    suggestionBox.classList.add('hidden');
+                }
+            } catch (err) {
+                console.error("Suggestion error:", err);
+            }
+        }
+
+        function renderSuggestions(results) {
+            suggestionList.innerHTML = '';
+            results.forEach(loc => {
+                const div = document.createElement('div');
+                div.className = 'suggestion-item p-3 cursor-pointer transition-colors border-b border-white/5 last:border-0';
+                div.innerHTML = `
+                    <div class="font-bold text-sm text-white">${loc.name}</div>
+                    <div class="text-[10px] text-white/50">${loc.admin1 || ''}, ${loc.country}</div>
+                `;
+                div.onclick = () => {
+                    searchInput.value = loc.name;
+                    suggestionBox.classList.add('hidden');
+                    processWeather(loc);
+                };
+                suggestionList.appendChild(div);
+            });
+            suggestionBox.classList.remove('hidden');
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !suggestionBox.contains(e.target)) {
+                suggestionBox.classList.add('hidden');
+            }
+        });
+
+        // --- WEATHER LOGIC ---
+        function getWInfo(code) {
+            const map = {
+                0: { desc: "Cerah", icon: "sun" },
+                1: { desc: "Cerah Berawan", icon: "cloud-sun" },
+                2: { desc: "Berawan", icon: "cloud" },
+                3: { desc: "Mendung", icon: "cloud-fog" },
+                45: { desc: "Berkabut", icon: "align-justify" },
+                51: { desc: "Gerimis", icon: "cloud-drizzle" },
+                61: { desc: "Hujan", icon: "cloud-rain" },
+                95: { desc: "Badai Petir", icon: "cloud-lightning" }
+            };
+            return map[code] || (code > 90 ? map[95] : (code > 50 ? map[61] : map[0]));
+        }
+
+        function getUVLabel(uv) {
+            if (uv <= 2) return { text: "Rendah", color: "text-green-300" };
+            if (uv <= 5) return { text: "Sedang", color: "text-yellow-300" };
+            if (uv <= 7) return { text: "Tinggi", color: "text-orange-300" };
+            if (uv <= 10) return { text: "Sgt Tinggi", color: "text-red-400" };
+            return { text: "Ekstrem", color: "text-purple-400" };
+        }
+
+        async function manualSearch(queryOverride = null) {
+            const query = queryOverride || searchInput.value;
+            if (!query) return;
+
+            suggestionBox.classList.add('hidden');
+            showStatus(true, "Mencari lokasi...");
+
+            try {
+                const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=id&format=json`);
+                const data = await res.json();
+                if (data.results) processWeather(data.results[0]);
+                else {
+                    // Jika tidak ditemukan dan bukan auto-load, beri alert
+                    if (!queryOverride) alert("Lokasi tidak ditemukan.");
+                    showStatus(false);
+                }
+            } catch (e) {
+                console.error(e);
+                showStatus(false);
+            }
+        }
+
+        async function processWeather(loc) {
+            showStatus(true, "Mengambil data...");
+            try {
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.latitude}&longitude=${loc.longitude}&current=temperature_2m,relative_humidity_2m,weather_code,is_day,wind_speed_10m&hourly=temperature_2m,weather_code,uv_index,relative_humidity_2m&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`);
+                const data = await res.json();
+                updateUI(loc.name, loc.admin1 || loc.country, data);
+                showStatus(false);
+                document.getElementById('weatherDashboard').classList.remove('hidden');
+            } catch (e) {
+                alert("Gagal memuat data.");
+                showStatus(false);
+            }
+        }
+
+        function updateUI(name, sub, data) {
+            const cur = data.current;
+            const hour = data.hourly;
+            const info = getWInfo(cur.weather_code);
+            const nowHour = new Date().getHours();
+
+            document.getElementById('areaName').textContent = name;
+            document.getElementById('areaSub').textContent = sub;
+            document.getElementById('tempValue').textContent = Math.round(cur.temperature_2m);
+            document.getElementById('weatherDesc').textContent = info.desc;
+            document.getElementById('weatherIconDisplay').innerHTML = `<i data-lucide="${info.icon}" class="w-24 h-24 text-white"></i>`;
+
+            document.getElementById('currentHumValue').textContent = cur.relative_humidity_2m;
+
+            const hIndex = hour.time.findIndex(t => new Date(t).getHours() === nowHour);
+            const uvNow = hIndex !== -1 ? hour.uv_index[hIndex] : 0;
+            const uvInfo = getUVLabel(uvNow);
+            document.getElementById('currentUvValue').innerHTML = `${uvNow} <span class="text-[10px] font-normal opacity-70 ${uvInfo.color}">${uvInfo.text}</span>`;
+
+            const tableBody = document.getElementById('combinedTableBody');
+            tableBody.innerHTML = '';
+            for (let i = nowHour; i < nowHour + 10; i++) {
+                if (!hour.time[i]) break;
+                const time = new Date(hour.time[i]).getHours().toString().padStart(2, '0') + ":00";
+                const uv = hour.uv_index[i];
+                const hum = hour.relative_humidity_2m[i];
+                const uvColor = uv > 6 ? 'text-red-400' : (uv > 2 ? 'text-orange-300' : 'text-green-300');
+
+                tableBody.innerHTML += `
+                    <tr class="uv-row border-b border-white/5">
+                        <td class="py-2 opacity-60">${time}</td>
+                        <td class="py-2 text-center font-bold ${uvColor}">${uv}</td>
+                        <td class="py-2 text-right font-medium text-blue-300">${hum}%</td>
+                    </tr>`;
+            }
+
+            const hScroll = document.getElementById('hourlyScroll');
+            hScroll.innerHTML = '';
+            for (let i = nowHour; i < nowHour + 24; i++) {
+                if (!hour.time[i]) break;
+                const hTime = new Date(hour.time[i]).getHours();
+                const hInfo = getWInfo(hour.weather_code[i]);
+                hScroll.innerHTML += `
+                    <div class="glass-light min-w-[65px] p-3 rounded-2xl flex flex-col items-center gap-1.5">
+                        <span class="text-[10px] opacity-40">${hTime}:00</span>
+                        <i data-lucide="${hInfo.icon}" class="w-5 h-5"></i>
+                        <span class="font-bold text-xs">${Math.round(hour.temperature_2m[i])}°</span>
+                    </div>`;
+            }
+
+            const dList = document.getElementById('dailyList');
+            dList.innerHTML = '';
+            for (let i = 1; i < 7; i++) {
+                const daily = data.daily;
+                const dInfo = getWInfo(daily.weather_code[i]);
+                dList.innerHTML += `
+                    <div class="flex items-center justify-between p-2 hover:bg-white/5 rounded-xl transition-colors">
+                        <span class="w-12 text-xs font-bold uppercase">${new Date(daily.time[i]).toLocaleDateString('id-ID', { weekday: 'long' })}</span>
+                        <div class="flex items-center gap-2 flex-1 justify-center opacity-70 text-[10px] uppercase">
+                            <i data-lucide="${dInfo.icon}" class="w-4 h-4"></i>
+                            <span>${dInfo.desc}</span>
+                        </div>
+                        <div class="w-16 text-right text-xs">
+                            <span class="font-bold">${Math.round(daily.temperature_2m_max[i])}°</span>
+                            <span class="opacity-30 ml-1">${Math.round(daily.temperature_2m_min[i])}°</span>
+                        </div>
+                    </div>`;
+            }
+
+            const body = document.getElementById('appBody');
+            body.style.background = cur.is_day ? 'linear-gradient(to bottom right, #3b82f6, #1d4ed8)' : 'linear-gradient(to bottom right, #0f172a, #1e293b)';
+
+            lucide.createIcons();
+        }
+
+        function showStatus(show, text = "") {
+            const box = document.getElementById('statusBox');
+            if (show) {
+                box.classList.remove('hidden');
+                document.getElementById('statusText').textContent = text;
+            } else {
+                box.classList.add('hidden');
+            }
+        }
+
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') manualSearch();
+        });
+    </script>
+</body>
+
+</html>
