@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@layer utilities {
+    .glass-panel {
+        @apply bg-white/10 backdrop-blur-[20px] border border-white/15;
+        -webkit-backdrop-filter: blur(20px);
+    }
+
+    .glass-light {
+        @apply bg-white/10 backdrop-blur-md border border-white/10;
+    }
+
+    .hide-scroll {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .hide-scroll::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+:root {
+    --bg-sunny: linear-gradient(to bottom right, #3b82f6, #60a5fa);
+    --bg-night: linear-gradient(to bottom right, #0f172a, #1e293b);
+}
+
+body {
+    font-family: 'Outfit', sans-serif;
+    background: #0f172a;
+    color: white;
+    min-height: 100vh;
+    transition: background 1s ease-in-out;
+    overscroll-behavior-y: none;
+}
+
+.uv-row:nth-child(even) {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.suggestion-item:hover {
+    background: rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+}
